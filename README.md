@@ -1,22 +1,22 @@
 # oracleHelper-for-node
-Utility for simplifying work with Oracle databases in the Node.JS enviroment
+##Utility for simplifying work with Oracle databases in the Node.JS enviroment
 
-##About
+###About:
 
 Built to make DB interaction as simple as possible, while still handling all basic application needs.
 Automaticly detects primary key and table columns when needed then stores them for future method calls.
 
-##Caveats
+###Caveats:
 
 DOES NOT PREVENT SQL-INJECTION at the moment
 
 Not fully tested at the moment.
 
-##Install
+###Install:
 
 Requires [oracledb official node driver](https://github.com/oracle/node-oracledb) that isn't the easiest to install. Have fun.
 
-##Prefer mysql?
+###Prefer mysql?
 
 If you prefer mysql (as I do), I created an identical [helper for mysql](https://github.com/chevalierc/mysqlHelper-for-node) that is injection-proof. The usage is identical with the exception of how query() is used with values.
 

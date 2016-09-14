@@ -12,6 +12,8 @@ DOES NOT PREVENT SQL-INJECTION at the moment
 
 Not fully tested at the moment.
 
+Population() function requires column names to be 26 charachters at most. No table name can have the same last 2 charachters and length
+
 ###Install:
 
 Requires [oracledb official node driver](https://github.com/oracle/node-oracledb) that isn't the easiest to install. Have fun.

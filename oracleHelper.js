@@ -19,7 +19,12 @@ var format = function ( string, values ) {
     var string_parts = string.split( "?" )
     for ( var i = 0; i < string_parts.length; i++ ) {
         final_string += string_parts[ i ]
-        if ( i != string_parts.length - 1 ) final_string += values[ i ]
+        if ( Object.prototype.toString.call( values ) === '[object Array]' ) {
+            if ( i != string_parts.length - 1 ) final_string += values[ i ]
+        } else {
+            if ( i != string_parts.length - 1 ) final_string += values
+        }
+
     }
     return final_string
 }
@@ -63,8 +68,10 @@ var get_db_columns = function ( pool, db_name, cb ) {
                                 }
 
                             }
+                            console.log( "--Database sucessfully parsed for column names" )
                             if ( cb != undefined ) cb( response )
                         } else {
+                            console.log( "--Database DID NOT sucessfully parsed for column names" )
                             console.log( err )
                             if ( cb != undefined ) cb( null )
                         }
@@ -167,17 +174,18 @@ var query = function ( query_obj, cb ) {
             cb( err )
         } else {
             conn.execute( sql, values, function ( err, res ) {
-                if ( err ) {
-                    console.log( err )
-                    cb( err )
-                } else {
-                    if ( res.rows != undefined ) {
-                        cb( null, res.rows )
+                conn.close( function () {
+                    if ( err ) {
+                        console.log( err )
+                        cb( err, [] )
                     } else {
-                        cb( null, res )
+                        if ( res.rows != undefined ) {
+                            cb( null, res.rows )
+                        } else {
+                            cb( null, res )
+                        }
                     }
-                }
-                conn.close()
+                } )
             } )
         }
     } )
@@ -300,7 +308,7 @@ var update = function ( query_obj, cb ) {
 var remove = function ( query_obj, cb ) {
     query_obj = clean_query_obj( query_obj )
     var id = query_obj.id
-    var table = obj.table
+    var table = query_obj.table
     var db_name = query_obj.db_name
     var pk_column_name = db_data[ db_name ].tables[ table ].pk
     query_obj.sql = format( "delete from ? where ? = ?", [ table, pk_column_name, id ] )
@@ -325,7 +333,7 @@ var populate = function ( query_obj, cb ) {
     query( {
         sql: sql
     }, function ( err, rows ) {
-        if ( rows.length > 0 || err ) {
+        if ( err || rows.length > 0 ) {
             obj = build_object( rows, structure, db_name, null, null )
             cb( err, obj )
         } else {
@@ -442,5 +450,6 @@ module.exports = {
     find: find,
     findOne: findOne,
     format: format,
-    update: remove
+    remove: remove,
+    update: update
 }

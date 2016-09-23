@@ -13,6 +13,30 @@ var log_sql = false;
 var log_errors = true;
 
 //PRIVATE METHODS
+var convert_obj_to_lowercase = function ( obj, cb ) {
+    //converts an objects members to lowercase and all its children no matter how deep cause recurssion
+    var response
+    if ( obj == null ) {
+        response = null
+    } else if ( obj.constructor === Array ) {
+        //ARRAY
+        response = []
+        for ( var i = 0; i < obj.length; i++ ) {
+            response[ i ] = convert_obj_to_lowercase( obj[ i ] )
+        }
+    } else if ( typeof obj === 'object' && obj != null ) {
+        //OBJ
+        response = {}
+        for ( var prop in obj ) {
+            if ( obj.hasOwnProperty( prop ) ) {
+                response[ prop.toLowerCase() ] = convert_obj_to_lowercase( obj[ prop ] )
+            }
+        }
+    } else {
+        response = obj
+    }
+    return response
+}
 
 var format = function ( string, values ) {
     var final_string = ""
@@ -45,8 +69,8 @@ var get_db_columns = function ( pool, db_name, cb ) {
                             var response = {}
                             var rows = res.rows
                             for ( var i = 0; i < rows.length; i++ ) {
-                                var column_name = rows[ i ].COLUMN_NAME
-                                var table = rows[ i ].TABLE_NAME
+                                var column_name = rows[ i ].COLUMN_NAME.toLowerCase()
+                                var table = rows[ i ].TABLE_NAME.toLowerCase()
                                 var type // = rows[ i ].DATA_TYPE
                                 var isPK = ( rows[ i ].IS_PK == "true" )
 
@@ -135,7 +159,7 @@ var connect = function ( config, cb ) {
     oracle.createPool( {
         user: config.user,
         password: config.password,
-        connectString: connString,
+        connectString: "ENID184.PFIZER.COM", //connString,
         poolMax: config.connectionLimit
     }, function ( err, pool ) {
         if ( err ) {
@@ -167,7 +191,7 @@ var query = function ( query_obj, cb ) {
     var sql = query_obj.sql
     var values = query_obj.values
     if ( !values ) values = []
-    if ( log_sql ) console.log( sql )
+    if ( log_sql ) console.log( "\n\t" + sql )
     pool.getConnection( function ( err, conn ) {
         if ( err ) {
             console.log( err )
@@ -180,6 +204,7 @@ var query = function ( query_obj, cb ) {
                         cb( err, [] )
                     } else {
                         if ( res.rows != undefined ) {
+                            res.rows = convert_obj_to_lowercase( res.rows )
                             cb( null, res.rows )
                         } else {
                             cb( null, res )

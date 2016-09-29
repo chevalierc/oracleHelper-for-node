@@ -84,6 +84,8 @@ All methods follow the format: `sqlHelper.method( query_object, callback )`. If 
 
 See example for how to use a find_object
 
+`sqlHelper.query( {sql, values}, callback)`
+
 `sqlHelper.create( {table, object}, callback)`
 
 `sqlHelper.update( {table, object}, callback)`
@@ -98,9 +100,9 @@ See example for how to use a find_object
 
 `sqlHeper.all( {table}, callback)`
 
-`sqlhelper.populate( {join_structure, sql, values}, callback)`
+`sqlhelper.populate( {join_structure, sql, values}, callback)` Run all the sql commands to create an object from a complex join
 
-`sqlHelper.query( {sql, values}, callback)`
+`sqlhelper.reverse_populate( {join_structure, object}, callback)` Run all the sql commands to take a js object and recreate it in the db
 
 ##Object Manipulation
 
@@ -155,6 +157,43 @@ mysqlHelper.populate( {
         console.log(cars)
 }
 ```
+
+##Reverse Populate
+
+Will create all entries in the db for an object that spans many tables as well as handle one-to-many joins
+
+Note: The same join structure will work for `populate()` and `reverse_populate()`
+```
+var join_structure = {
+        table: "car",
+        unique_values: [ "license" ],
+        replace: true,
+        children: [ {
+            table: "wheel",
+            fk: "car_fk"
+        } ]
+}
+var my_car = {
+        license: "abcdefg",
+        color: red,
+        body: large,
+        wheel: [{
+                tread: " winter",
+                position: "fl"
+        },{
+                tread: " winter",
+                position: "fr"
+        }]
+
+mysqlHelper.reverse_populate( {
+        structure: join_structure,
+        object: my_car
+}, function(err, res, cols){
+        var car_id = res.id
+        console.log(card_id)
+}
+```
+
 
 ##Query with values Example
 Using the values array you can avoid sqlInjection.

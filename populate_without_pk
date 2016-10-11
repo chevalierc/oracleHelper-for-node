@@ -1,0 +1,93 @@
+var sqlHelper = require( './oracleHelper' );
+var Promise = require( 'promise' );
+
+var populate = function ( query_obj, cb ) {
+    var structure = query_obj.structure
+    var parent_pk_values = query_obj.parent_pk_values
+    if ( structure == undefined ) cb( "No join structure in query. use `.structure`" )
+    if ( parent_pk_values == undefined ) cb( "No PK values in query. use `.parent_pk_values`" )
+
+    var columns = structure.pk
+    var vals = parent_pk_values
+    get_rows( structure.table, columns, vals, function ( rows ) {
+        var obj = rows[ 0 ]
+        handle_children( obj, structure ).then( function ( res ) {
+            cb( null, res )
+        }, function ( err ) {
+            console.log( err )
+            cb( err, [] )
+        } )
+    } )
+}
+
+var handle_children = function ( obj, structure ) {
+    return new Promise( function ( resolve, reject ) {
+
+        if ( structure.children == undefined ) {
+            return resolve( obj )
+        } else if ( structure.children ) {
+
+            var columns = []
+            var vals = []
+            for ( var i = 0; i < structure.pk.length; i++ ) {
+                var column = structure.pk[ i ]
+                columns[ i ] = column
+                vals.push( obj[ columns[ i ] ] )
+            }
+
+            var promises = []
+            var children_table_names = []
+            for ( var i = 0; i < structure.children.length; i++ ) {
+                var child_structure = structure.children[ i ]
+                children_table_names.push( child_structure.table )
+                var promise = get_child( child_structure, columns, vals )
+                promises.push( promise )
+            }
+
+            Promise.all( promises ).then( function ( responses ) {
+                for ( var i = 0; i < responses.length; i++ ) {
+                    var name = children_table_names[ i ]
+                    obj[ name ] = responses[ i ]
+                }
+                return resolve( obj )
+            } )
+        }
+
+    } )
+}
+
+var get_child = function ( structure, columns, vals ) {
+    return new Promise( function ( resolve, reject ) {
+        get_rows( structure.table, columns, vals, function ( rows ) {
+
+            var promises = []
+            for ( var i = 0; i < rows.length; i++ ) {
+                var promise = handle_children( rows[ i ], structure )
+                promises.push( promise )
+            }
+            Promise.all( promises ).then( function ( responses ) {
+                for ( var i = 0; i < rows.length; i++ ) {
+                    rows[ i ] = responses[ i ]
+                }
+                return resolve( rows )
+            } )
+
+        } )
+    } )
+}
+
+var get_rows = function ( table, columns, vals, cb ) {
+    var sql = "select * from " + table
+    for ( var i = 0; i < columns.length; i++ ) {
+        sql += ( i == 0 ? " where " : " and " )
+        sql += sqlHelper.format( " ? = '?' ", [ columns[ i ], vals[ i ] ] )
+    }
+    sqlHelper.query( {
+        sql: sql
+    }, function ( err, rows ) {
+        if ( err ) console.log( err )
+        cb( rows )
+    } )
+}
+
+module.exports = populate
